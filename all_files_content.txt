@@ -1,0 +1,2058 @@
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\archive-idea.php ---
+
+<?php
+// این فایل مسئول نمایش لیست ایده‌ها (آرشیو ایده‌ها) است.
+
+get_header(); // فراخوانی هدر سایت
+
+// دریافت مقادیر جستجو از URL
+$search_query = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+$category = isset($_GET['idea_category']) ? sanitize_text_field($_GET['idea_category']) : '';
+$post_status_filter = isset($_GET['post_status']) ? sanitize_text_field($_GET['post_status']) : 'publish';
+
+// آرگومان‌های کوئری برای نمایش ایده‌ها
+$args = array(
+    'post_type' => 'idea',
+    'post_status' => $post_status_filter,
+    's' => $search_query, // اعمال جستجو
+);
+
+// اعمال فیلتر دسته‌بندی اگر انتخاب شده باشد
+if (!empty($category)) {
+    $args['tax_query'] = array(
+        array(
+            'taxonomy' => 'idea_category',
+            'field' => 'slug',
+            'terms' => $category,
+        ),
+    );
+}
+
+// نمایش فقط ایده‌های کاربر جاری برای نقش Idea Owner
+if (is_user_logged_in() && ideanet_get_user_role() === 'idea_owner') {
+    $current_user = wp_get_current_user();
+    $args['author'] = $current_user->ID;
+}
+
+$ideas_query = new WP_Query($args);
+?>
+
+<div class="container mx-auto py-8 px-4 md:px-0">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-[#003049] mb-6 text-center md:text-right">جستجو و کشف ایده‌ها</h1>
+        <p class="text-gray-600 mb-8 text-center md:text-right">
+            ایده‌های نوآورانه را بر اساس عنوان، کلیدواژه یا دسته‌بندی مورد علاقه خود پیدا کنید.
+        </p>
+
+        <!-- فرم جستجو و فیلتر -->
+        <form class="flex flex-col md:flex-row gap-4 mb-8" role="search" method="get">
+            <input
+                type="text"
+                name="s"
+                value="<?php echo esc_attr($search_query); ?>"
+                placeholder="جستجو در ایده‌ها..."
+                class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c1121f] transition-all"
+            >
+            <?php
+            // دریافت تمام دسته‌بندی‌های 'idea_category'
+            $categories = get_terms(array(
+                'taxonomy' => 'idea_category',
+                'hide_empty' => true,
+            ));
+            if (!empty($categories) && !is_wp_error($categories)) : ?>
+                <select name="idea_category" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c1121f] transition-all">
+                    <option value="">همه دسته‌بندی‌ها</option>
+                    <?php foreach ($categories as $cat) : ?>
+                        <option value="<?php echo esc_attr($cat->slug); ?>" <?php selected($category, $cat->slug); ?>>
+                            <?php echo esc_html($cat->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+            <button
+                type="submit"
+                class="p-3 bg-secondary text-white rounded-lg font-bold hover:bg-[#a61019] transition-colors duration-300"
+            >
+                جستجو
+            </button>
+        </form>
+
+        <!-- لیست ایده‌ها -->
+        <?php if ($ideas_query->have_posts()) : ?>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php while ($ideas_query->have_posts()) : $ideas_query->the_post(); ?>
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-xl transition-shadow duration-300 transform hover:scale-105">
+                        <h2 class="text-xl font-bold text-[#003049] mb-2 text-right">
+                            <a href="<?php the_permalink(); ?>" class="hover:text-[#c1121f] transition duration-200"><?php the_title(); ?></a>
+                        </h2>
+                        <p class="text-gray-600 text-sm mb-4 text-right"><?php echo get_the_date('j F Y'); ?></p>
+                        <div class="text-gray-700 text-right leading-relaxed mb-4">
+                            <?php the_excerpt(); ?>
+                        </div>
+                        <a href="<?php the_permalink(); ?>" class="text-[#c1121f] font-bold hover:underline text-right block">مشاهده جزئیات →</a>
+                    </div>
+                <?php endwhile; wp_reset_postdata(); ?>
+            </div>
+        <?php else : ?>
+            <div class="text-center py-10 bg-gray-100 rounded-lg">
+                <p class="text-lg font-bold text-[#003049]">متاسفانه ایده‌ای با این مشخصات یافت نشد.</p>
+                <p class="text-gray-600 mt-2">لطفاً جستجوی خود را تغییر دهید یا فیلترها را حذف کنید.</p>
+            </div>
+        <?php endif; ?>
+
+    </div>
+</div>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\archive-idea.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\footer.php ---
+
+<?php
+// این فایل فوتر قالب وردپرس رو شامل می‌شه.
+// تمامی تگ‌های بسته شدن بدنه و HTML در این فایل قرار می‌گیرن.
+?>
+
+        <!--
+            بخش فوتر سایت
+            با استفاده از flexbox و کلاس‌های Tailwind برای ساختاردهی و ریسپانسیو بودن
+        -->
+        <footer class="bg-text text-background py-8 mt-16">
+            <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+
+                <!-- ستون اول: اطلاعات کلی -->
+                <div>
+                    <!-- لوگو در فوتر -->
+                    <a href="<?php echo home_url(); ?>">
+                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/logo-white.png" alt="لوگو IdeaNet" class="h-10 mb-4">
+                    </a>
+                    <p class="text-sm leading-relaxed">پلتفرمی امن و هوشمند برای اتصال صاحبان ایده به سرمایه‌گذاران و متخصصان. ایده‌های شما اینجا رشد می‌کنند.</p>
+                </div>
+
+                <!-- ستون دوم: لینک‌های سریع -->
+                <div>
+                    <h3 class="font-bold text-lg mb-4">لینک‌های سریع</h3>
+                    <ul>
+                        <li class="mb-2"><a href="<?php echo home_url(); ?>" class="hover:text-accent transition-colors duration-300">صفحه اصلی</a></li>
+                        <li class="mb-2"><a href="<?php echo home_url('/ideas'); ?>" class="hover:text-accent transition-colors duration-300">کشف ایده‌ها</a></li>
+                        <li class="mb-2"><a href="<?php echo home_url('/about-us'); ?>" class="hover:text-accent transition-colors duration-300">درباره ما</a></li>
+                        <li class="mb-2"><a href="<?php echo home_url('/contact'); ?>" class="hover:text-accent transition-colors duration-300">تماس با ما</a></li>
+                    </ul>
+                </div>
+
+                <!-- ستون سوم: منابع آموزشی -->
+                <div>
+                    <h3 class="font-bold text-lg mb-4">منابع</h3>
+                    <ul>
+                        <li class="mb-2"><a href="<?php echo home_url('/education'); ?>" class="hover:text-accent transition-colors duration-300">منابع آموزشی</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-accent transition-colors duration-300">وبلاگ</a></li>
+                        <li class="mb-2"><a href="#" class="hover:text-accent transition-colors duration-300">راهنما</a></li>
+                    </ul>
+                </div>
+
+                <!-- ستون چهارم: شبکه‌های اجتماعی -->
+                <div>
+                    <h3 class="font-bold text-lg mb-4">شبکه‌های اجتماعی</h3>
+                    <div class="flex space-x-4 space-x-reverse">
+                        <a href="https://github.com/hadin-group" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/github-icon.png" alt="Github" class="h-6 w-6 filter invert">
+                        </a>
+                        <a href="https://linkedin.com/company/hadin-group" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/linkedin-icon.png" alt="LinkedIn" class="h-6 w-6 filter invert">
+                        </a>
+                        <a href="https://instagram.com/hadin-group" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/instagram-icon.png" alt="Instagram" class="h-6 w-6 filter invert">
+                        </a>
+                        <a href="https://t.me/hadin-group" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/telegram-icon.png" alt="Telegram" class="h-6 w-6 filter invert">
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- بخش کپی‌رایت -->
+            <div class="container mx-auto px-4 mt-8 pt-8 border-t border-gray-700 text-center">
+                <p class="text-sm">تمامی حقوق برای **گروه حدین** محفوظ است. © <?php echo date('Y'); ?></p>
+            </div>
+
+        </footer>
+
+        <?php wp_footer(); ?>
+    </body>
+</html>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\footer.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\functions.php ---
+
+<?php
+// این فایل توابع اصلی و تنظیمات قالب رو مدیریت می‌کنه.
+
+// تابعی برای فراخوانی فایل‌های استایل و اسکریپت
+function hadin_enqueue_styles() {
+    // فراخوانی فایل استایل اصلی (style.css)
+    wp_enqueue_style('hadin-style', get_stylesheet_uri());
+
+    // فراخوانی فایل TailwindCSS
+    wp_enqueue_script('tailwind-cdn', 'https://cdn.tailwindcss.com', array(), '3.3.5', false);
+    
+    // فراخوانی فونت IRANSans
+    wp_enqueue_style('hadin-iransans', get_template_directory_uri() . '/style.css', array(), '1.0');
+}
+add_action('wp_enqueue_scripts', 'hadin_enqueue_styles');
+
+// تنظیمات قالب
+function hadin_theme_setup() {
+    // پشتیبانی از عنوان دینامیک
+    add_theme_support('title-tag');
+
+    // ثبت منوهای اصلی قالب
+    register_nav_menus(
+        array(
+            'primary-menu' => __('منوی اصلی', 'ideanet'),
+            'footer-menu'  => __('منوی فوتر', 'ideanet'),
+        )
+    );
+
+    // افزودن پشتیبانی از تصاویر بندانگشتی (thumbnails)
+    add_theme_support('post-thumbnails');
+
+    // ایجاد نقش‌های کاربری سفارشی
+    add_role('idea_owner', 'صاحب ایده', array('read' => true, 'level_0' => true));
+    add_role('investor', 'سرمایه‌گذار', array('read' => true, 'level_0' => true));
+    add_role('specialist', 'متخصص', array('read' => true, 'level_0' => true));
+}
+add_action('after_setup_theme', 'hadin_theme_setup');
+
+// تابعی برای ایجاد انواع پست سفارشی
+function ideanet_register_custom_post_types() {
+    // ایجاد Custom Post Type برای "ایده"
+    register_post_type('idea',
+        array(
+            'labels'      => array(
+                'name'          => __('ایده‌ها', 'ideanet'),
+                'singular_name' => __('ایده', 'ideanet'),
+            ),
+            'public'      => true,
+            'has_archive' => true,
+            'rewrite'     => array('slug' => 'ideas'),
+            'supports'    => array('title', 'editor', 'author', 'thumbnail', 'excerpt', 'custom-fields'),
+            'menu_icon'   => 'dashicons-lightbulb',
+        )
+    );
+
+    // ایجاد Custom Post Type برای "منبع آموزشی"
+    register_post_type('education',
+        array(
+            'labels'      => array(
+                'name'          => __('منابع آموزشی', 'ideanet'),
+                'singular_name' => __('منبع آموزشی', 'ideanet'),
+            ),
+            'public'      => true,
+            'has_archive' => true,
+            'rewrite'     => array('slug' => 'education'),
+            'supports'    => array('title', 'editor', 'author', 'thumbnail', 'excerpt'),
+            'menu_icon'   => 'dashicons-welcome-learn-more',
+        )
+    );
+}
+add_action('init', 'ideanet_register_custom_post_types');
+
+
+// تابعی برای ایجاد دسته‌بندی سفارشی (Taxonomy) برای ایده‌ها
+function ideanet_register_idea_taxonomy() {
+    $labels = array(
+        'name'              => _x('دسته‌بندی ایده', 'taxonomy general name', 'ideanet'),
+        'singular_name'     => _x('دسته‌بندی', 'taxonomy singular name', 'ideanet'),
+        'search_items'      => __('جستجو در دسته‌بندی‌ها', 'ideanet'),
+        'all_items'         => __('همه دسته‌بندی‌ها', 'ideanet'),
+        'parent_item'       => __('دسته‌بندی والد', 'ideanet'),
+        'parent_item_colon' => __('دسته‌بندی والد:', 'ideanet'),
+        'edit_item'         => __('ویرایش دسته‌بندی', 'ideanet'),
+        'update_item'       => __('به‌روزرسانی', 'ideanet'),
+        'add_new_item'      => __('افزودن دسته‌بندی جدید', 'ideanet'),
+        'new_item_name'     => __('نام دسته‌بندی جدید', 'ideanet'),
+        'menu_name'         => __('دسته‌بندی ایده', 'ideanet'),
+    );
+    $args = array(
+        'hierarchical'      => true,
+        'labels'            => $labels,
+        'show_ui'           => true,
+        'show_admin_column' => true,
+        'query_var'         => true,
+        'rewrite'           => array('slug' => 'idea_category'),
+    );
+    register_taxonomy('idea_category', array('idea'), $args);
+}
+add_action('init', 'ideanet_register_idea_taxonomy');
+
+
+// تابعی برای دریافت نقش کاربری فعلی
+function ideanet_get_user_role() {
+    if (is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $roles = (array) $user->roles;
+        return $roles[0];
+    }
+    return false;
+}
+
+// تابعی برای نمایش پیام‌های وضعیت در داشبورد
+function ideanet_display_status_message() {
+    $status = isset($_GET['submit_status']) ? sanitize_text_field($_GET['submit_status']) : '';
+    $message = '';
+    $class = '';
+
+    if ($status === 'success') {
+        $message = 'ایده شما با موفقیت ثبت شد و پس از بررسی توسط تیم ادمین، تأیید و نمایش داده خواهد شد.';
+        $class = 'bg-green-100 border-green-500 text-green-700';
+    } elseif ($status === 'failed') {
+        $message = 'ثبت ایده با مشکل مواجه شد. لطفا دوباره تلاش کنید.';
+        $class = 'bg-red-100 border-red-500 text-red-700';
+    } elseif ($status === 'not_logged_in') {
+        $message = 'شما برای ثبت ایده باید وارد حساب کاربری خود شوید.';
+        $class = 'bg-yellow-100 border-yellow-500 text-yellow-700';
+    } elseif ($status === 'access_denied') {
+        $message = 'شما مجوز لازم برای دسترسی به این بخش را ندارید.';
+        $class = 'bg-red-100 border-red-500 text-red-700';
+    }
+    
+    if ($message) {
+        echo '<div class="my-6 p-4 rounded-lg border-r-4 ' . $class . '" role="alert">';
+        echo '    <p class="text-sm">' . $message . '</p>';
+        echo '</div>';
+    }
+}
+add_action('the_content', 'ideanet_display_status_message');
+
+
+// تابع برای مدیریت ثبت‌نام کاربر
+function ideanet_handle_user_registration() {
+    if (isset($_POST['ideanet_register_nonce']) && wp_verify_nonce($_POST['ideanet_register_nonce'], 'ideanet-register-nonce')) {
+        $username = sanitize_user($_POST['user_login']);
+        $email    = sanitize_email($_POST['user_email']);
+        $password = $_POST['user_password'];
+        $role     = isset($_POST['user_role']) ? sanitize_text_field($_POST['user_role']) : 'subscriber';
+
+        // بررسی فیلدهای خالی
+        if (empty($username) || empty($email) || empty($password)) {
+            wp_redirect(add_query_arg('reg_status', 'empty_fields', home_url('/register')));
+            exit;
+        }
+
+        // بررسی وجود نام کاربری
+        if (username_exists($username)) {
+            wp_redirect(add_query_arg('reg_status', 'username_exists', home_url('/register')));
+            exit;
+        }
+
+        // بررسی وجود ایمیل
+        if (email_exists($email)) {
+            wp_redirect(add_query_arg('reg_status', 'email_exists', home_url('/register')));
+            exit;
+        }
+
+        $user_id = wp_create_user($username, $password, $email);
+
+        if (!is_wp_error($user_id)) {
+            // نقش کاربری سفارشی را به کاربر جدید اختصاص دهید
+            $user = new WP_User($user_id);
+            $user->set_role($role);
+
+            // ثبت‌نام با موفقیت انجام شد، به صفحه ورود هدایت می‌شود
+            wp_redirect(add_query_arg('reg_status', 'success', home_url('/login')));
+            exit;
+        } else {
+            // ثبت‌نام با خطا مواجه شد
+            wp_redirect(add_query_arg('reg_status', 'failed', home_url('/register')));
+            exit;
+        }
+    }
+}
+add_action('init', 'ideanet_handle_user_registration');
+
+
+// تابعی برای مدیریت ثبت ایده جدید
+function ideanet_handle_idea_submission() {
+    if (isset($_POST['submit_idea_nonce']) && wp_verify_nonce($_POST['submit_idea_nonce'], 'submit_idea_nonce_action')) {
+        if (!is_user_logged_in()) {
+            wp_redirect(home_url('/login?submit_status=not_logged_in'));
+            exit;
+        }
+
+        $user_role = ideanet_get_user_role();
+        if ($user_role !== 'idea_owner') {
+            wp_redirect(home_url('/dashboard?submit_status=access_denied'));
+            exit;
+        }
+
+        $idea_title = sanitize_text_field($_POST['idea_title']);
+        $idea_excerpt = sanitize_textarea_field($_POST['idea_excerpt']);
+        $idea_description = sanitize_textarea_field($_POST['idea_description']);
+        $security_level = sanitize_text_field($_POST['security-level']);
+        $idea_category = isset($_POST['idea_category']) ? sanitize_text_field($_POST['idea_category']) : '';
+
+        // اگر عنوان ایده خالی بود
+        if (empty($idea_title)) {
+            wp_redirect(add_query_arg('submit_status', 'failed', home_url('/submit-idea')));
+            exit;
+        }
+
+        $new_idea_post = array(
+            'post_title'    => $idea_title,
+            'post_content'  => $idea_description,
+            'post_excerpt'  => $idea_excerpt,
+            'post_status'   => 'pending', // ایده‌ها ابتدا در وضعیت "در انتظار" قرار می‌گیرند
+            'post_type'     => 'idea',
+            'post_author'   => get_current_user_id(),
+        );
+
+        $post_id = wp_insert_post($new_idea_post);
+
+        if (!is_wp_error($post_id)) {
+            // اضافه کردن فیلدهای سفارشی برای سطح امنیتی
+            update_post_meta($post_id, '_ideanet_security_level', $security_level);
+            
+            // تنظیم دسته‌بندی
+            if (!empty($idea_category)) {
+                wp_set_object_terms($post_id, $idea_category, 'idea_category');
+            }
+
+            wp_redirect(add_query_arg('submit_status', 'success', home_url('/dashboard')));
+            exit;
+        } else {
+            wp_redirect(add_query_arg('submit_status', 'failed', home_url('/submit-idea')));
+            exit;
+        }
+    }
+}
+add_action('init', 'ideanet_handle_idea_submission');
+
+
+// تابع برای مدیریت NDA
+function ideanet_handle_nda_agreement() {
+    if (isset($_POST['nda_agreement_nonce']) && wp_verify_nonce($_POST['nda_agreement_nonce'], 'nda_agreement_action')) {
+        if (!is_user_logged_in()) {
+            // اگر کاربر وارد نشده باشد
+            echo json_encode(array('success' => false, 'message' => 'User not logged in.'));
+            wp_die();
+        }
+
+        $current_user_id = get_current_user_id();
+        $idea_id = isset($_POST['idea_id']) ? intval($_POST['idea_id']) : 0;
+        
+        if ($idea_id > 0) {
+            // در دنیای واقعی، اینجا باید یک رکورد در دیتابیس ذخیره شود
+            // که نشان دهد کاربر فعلی، NDA ایده با شناسه $idea_id را امضا کرده است.
+            // به عنوان مثال، می‌توانید یک Custom Field به پروفایل کاربر اضافه کنید:
+            $signed_ideas = get_user_meta($current_user_id, '_signed_nda_ideas', true);
+            if (!is_array($signed_ideas)) {
+                $signed_ideas = [];
+            }
+            if (!in_array($idea_id, $signed_ideas)) {
+                $signed_ideas[] = $idea_id;
+                update_user_meta($current_user_id, '_signed_nda_ideas', $signed_ideas);
+            }
+
+            echo json_encode(array('success' => true, 'redirect_url' => get_permalink($idea_id)));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Invalid idea ID.'));
+        }
+    }
+    wp_die();
+}
+add_action('wp_ajax_ideanet_handle_nda_agreement', 'ideanet_handle_nda_agreement');
+add_action('wp_ajax_nopriv_ideanet_handle_nda_agreement', 'ideanet_handle_nda_agreement'); // برای کاربران لاگین نکرده
+
+
+// تابعی برای نمایش پیام‌های وضعیت در داشبورد
+function ideanet_display_status_message_dashboard() {
+    $status = isset($_GET['submit_status']) ? sanitize_text_field($_GET['submit_status']) : '';
+    $message = '';
+    $class = '';
+
+    if ($status === 'success') {
+        $message = 'ایده شما با موفقیت ثبت شد و پس از بررسی توسط تیم ادمین، تأیید و نمایش داده خواهد شد.';
+        $class = 'bg-green-100 border-green-500 text-green-700';
+    } elseif ($status === 'failed') {
+        $message = 'ثبت ایده با مشکل مواجه شد. لطفا دوباره تلاش کنید.';
+        $class = 'bg-red-100 border-red-500 text-red-700';
+    } elseif ($status === 'not_logged_in') {
+        $message = 'شما برای ثبت ایده باید وارد حساب کاربری خود شوید.';
+        $class = 'bg-yellow-100 border-yellow-500 text-yellow-700';
+    } elseif ($status === 'access_denied') {
+        $message = 'شما مجوز لازم برای دسترسی به این بخش را ندارید.';
+        $class = 'bg-red-100 border-red-500 text-red-700';
+    }
+    
+    if ($message) {
+        echo '<div class="my-6 p-4 rounded-lg border-r-4 ' . $class . '" role="alert">';
+        echo '    <p class="text-sm">' . $message . '</p>';
+        echo '</div>';
+    }
+}
+add_action('ideanet_dashboard_messages', 'ideanet_display_status_message_dashboard');
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\functions.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\header.php ---
+
+<?php
+// این فایل هدر قالب وردپرس رو شامل می‌شه.
+// تمامی تگ‌های head و بخش شروع بدنه در این فایل قرار می‌گیرن.
+?>
+
+<!DOCTYPE html>
+<html <?php language_attributes(); ?> dir="rtl">
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="profile" href="https://gmpg.org/xfn/11">
+    
+    <!--
+        اینجا TailwindCSS رو از طریق CDN فراخوانی می‌کنیم.
+        در آینده برای پرفورمنس بهتر، باید فایل Tailwind رو کامپایل کنید.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- تنظیمات سفارشی Tailwind برای استفاده از پالت رنگی Fiery Ocean -->
+    <style>
+        @layer base {
+            :root {
+                --color-primary: #780000;
+                --color-secondary: #c1121f;
+                --color-background: #fdf0d5;
+                --color-text: #003049;
+                --color-accent: #669bbc;
+            }
+        }
+        body {
+            background-color: var(--color-background);
+            font-family: 'IRANSans', sans-serif;
+        }
+        .text-primary { color: var(--color-primary); }
+        .bg-primary { background-color: var(--color-primary); }
+        .text-secondary { color: var(--color-secondary); }
+        .bg-secondary { background-color: var(--color-secondary); }
+        .text-background { color: var(--color-background); }
+        .bg-background { background-color: var(--color-background); }
+        .text-text { color: var(--color-text); }
+        .bg-text { background-color: var(--color-text); }
+        .text-accent { color: var(--color-accent); }
+        .bg-accent { background-color: var(--color-accent); }
+    </style>
+    
+    <?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+    <?php wp_body_open(); ?>
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- لوگوی سایت -->
+            <a href="<?php echo home_url(); ?>" class="flex items-center space-x-2 space-x-reverse">
+                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/logo-dark.png" alt="لوگو IdeaNet" class="h-10">
+                <span class="text-xl font-bold text-text hidden md:inline">IdeaNet</span>
+            </a>
+
+            <!-- منوی اصلی (فقط در دسکتاپ) -->
+            <nav class="hidden lg:flex items-center space-x-6 space-x-reverse">
+                <a href="<?php echo home_url(); ?>" class="text-text hover:text-accent transition-colors duration-300 font-medium">صفحه اصلی</a>
+                <a href="<?php echo home_url('/ideas'); ?>" class="text-text hover:text-accent transition-colors duration-300 font-medium">کشف ایده‌ها</a>
+                <a href="<?php echo home_url('/about-us'); ?>" class="text-text hover:text-accent transition-colors duration-300 font-medium">درباره ما</a>
+                <a href="<?php echo home_url('/contact'); ?>" class="text-text hover:text-accent transition-colors duration-300 font-medium">تماس با ما</a>
+            </nav>
+
+            <!-- دکمه‌های ورود/ثبت‌نام/داشبورد (دسکتاپ) -->
+            <div class="hidden lg:flex items-center space-x-4 space-x-reverse">
+                <?php if (is_user_logged_in()) : ?>
+                    <a href="<?php echo home_url('/dashboard'); ?>" class="px-6 py-2 bg-accent text-white rounded-lg font-bold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">داشبورد</a>
+                    <a href="<?php echo wp_logout_url(home_url()); ?>" class="px-6 py-2 bg-secondary text-white rounded-lg font-bold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">خروج</a>
+                <?php else : ?>
+                    <a href="<?php echo home_url('/login'); ?>" class="px-6 py-2 bg-accent text-white rounded-lg font-bold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">ورود</a>
+                    <a href="<?php echo home_url('/register'); ?>" class="px-6 py-2 bg-secondary text-white rounded-lg font-bold hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">ثبت‌نام</a>
+                <?php endif; ?>
+            </div>
+
+            <!-- دکمه منوی موبایل -->
+            <div class="lg:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-text text-2xl focus:outline-none">
+                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- منوی موبایل (مخفی به صورت پیش‌فرض) -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white shadow-inner p-4">
+            <nav class="flex flex-col items-center text-center space-y-4">
+                <a href="<?php echo home_url(); ?>" class="text-text hover:text-accent transition-colors duration-300 py-2">صفحه اصلی</a>
+                <a href="<?php echo home_url('/ideas'); ?>" class="text-text hover:text-accent transition-colors duration-300 py-2">کشف ایده‌ها</a>
+                <a href="<?php echo home_url('/about-us'); ?>" class="text-text hover:text-accent transition-colors duration-300 py-2">درباره ما</a>
+                <a href="<?php echo home_url('/contact'); ?>" class="text-text hover:text-accent transition-colors duration-300 py-2">تماس با ما</a>
+                <div class="mt-4 flex flex-col space-y-2">
+                    <?php if (is_user_logged_in()) : ?>
+                        <a href="<?php echo home_url('/dashboard'); ?>" class="px-6 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">داشبورد</a>
+                        <a href="<?php echo wp_logout_url(home_url()); ?>" class="px-6 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">خروج</a>
+                    <?php else : ?>
+                        <a href="<?php echo home_url('/login'); ?>" class="px-6 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">ورود</a>
+                        <a href="<?php echo home_url('/register'); ?>" class="px-6 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">ثبت‌نام</a>
+                    <?php endif; ?>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <script>
+        // اسکریپت ساده برای نمایش/مخفی کردن منوی موبایل
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\header.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\index.php ---
+
+<?php
+// این فایل نقطه شروع و اصلی قالب وردپرس ماست.
+// با فراخوانی get_header() و get_footer()، تمامی بخش‌های ثابت سایت رو نمایش می‌ده.
+
+// فراخوانی هدر
+get_header();
+?>
+
+<!--
+    محتوای اصلی صفحه در این بخش قرار می‌گیره.
+    این محتوا شامل Hero Section، بخش مشکلات و راه‌حل‌ها و سایر بخش‌های صفحه اصلیه.
+-->
+<main id="primary" class="site-main">
+
+    <!--
+        بخش هیرو (Hero Section)
+        این بخش اولین چیزیه که کاربر می‌بینه، پس باید جذاب و چشم‌گیر باشه.
+    -->
+    <section class="relative overflow-hidden bg-background py-20 lg:py-32">
+        <div class="container mx-auto px-4 text-center">
+            <!-- تصویر پس‌زمینه تزئینی و مینیمال -->
+            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/hero-image.png" alt="تصویر گرافیکی" class="absolute inset-0 w-full h-full object-cover opacity-10">
+
+            <div class="relative z-10 max-w-4xl mx-auto">
+                <!-- عنوان اصلی -->
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary mb-4 leading-tight">
+                    ایده‌های شما،
+                    <span class="text-secondary block">
+                        فرصت‌های رشد و سرمایه‌گذاری
+                    </span>
+                </h1>
+                <!-- توضیحات زیر عنوان -->
+                <p class="text-lg md:text-xl text-text mb-8 max-w-2xl mx-auto">
+                    پلتفرم هوشمند IdeaNet، بهترین بستر برای اتصال صاحبان ایده‌های نوآورانه به سرمایه‌گذاران و متخصصان
+                    حرفه‌ای است.
+                </p>
+                <!-- دکمه CTA -->
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <a href="<?php echo home_url('/submit-idea'); ?>" class="w-full sm:w-auto px-8 py-4 bg-secondary text-white rounded-lg font-bold text-lg hover:bg-primary transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        ایده‌ات رو ثبت کن
+                    </a>
+                    <a href="<?php echo home_url('/ideas'); ?>" class="w-full sm:w-auto px-8 py-4 bg-accent text-white rounded-lg font-bold text-lg hover:bg-primary transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        کشف ایده‌ها
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!--
+        بخش مشکلات و راه‌حل‌ها
+        این بخش به مشکلات اصلی جامعه هدف اشاره و راه‌حل‌هایی که پلتفرم ارائه می‌دهد را نمایش می‌دهد.
+    -->
+    <section class="container mx-auto py-16 px-4">
+        <div class="max-w-4xl mx-auto text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-primary mb-4">مشکلات موجود در اکوسیستم نوآوری</h2>
+            <p class="text-text text-lg">پلتفرم ما برای حل این چالش‌ها طراحی شده است:</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- کارت اول: مشکل و راه‌حل -->
+            <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col justify-start items-center text-center hover:shadow-2xl transition-shadow duration-300">
+                <svg class="w-16 h-16 text-primary mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                <h3 class="font-bold text-2xl text-secondary mb-2">مشکل: پیدا کردن سرمایه‌گذار و متخصص</h3>
+                <p class="text-text leading-relaxed">راه‌حل: یک بازار آنلاین که در آن ایده‌ها با سرمایه‌گذاران و متخصصان به صورت هدفمند و مستقیم ارتباط برقرار می‌کنند.</p>
+            </div>
+            <!-- کارت دوم: مشکل و راه‌حل -->
+            <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col justify-start items-center text-center hover:shadow-2xl transition-shadow duration-300">
+                <svg class="w-16 h-16 text-primary mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <h3 class="font-bold text-2xl text-secondary mb-2">مشکل: عدم اطمینان به اطلاعات</h3>
+                <p class="text-text leading-relaxed">راه‌حل: سیستم تأیید هویت و امکان امضای قرارداد NDA.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\index.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-dashboard.php ---
+
+<?php
+/*
+Template Name: داشبورد (IdeaNet)
+*/
+
+// Check if user is logged in
+if (!is_user_logged_in()) {
+    wp_redirect(home_url('/login'));
+    exit;
+}
+
+get_header();
+
+// Get the current user's role and user object
+$current_user = wp_get_current_user();
+$user_role = ideanet_get_user_role();
+
+?>
+
+<main id="primary" class="site-main">
+    <div class="flex flex-col lg:flex-row min-h-screen bg-gray-100">
+
+        <!-- Sidebar Navigation -->
+        <aside class="w-full lg:w-1/4 p-6 bg-white shadow-lg lg:min-h-screen">
+            <nav>
+                <ul class="space-y-4">
+                    <li>
+                        <a href="<?php echo home_url('/dashboard'); ?>" class="flex items-center p-4 text-[#c1121f] bg-red-50 rounded-lg font-bold transition-colors duration-200">
+                            <i class="fas fa-home ml-3"></i>
+                            <span>داشبورد</span>
+                        </a>
+                    </li>
+                    <?php if ($user_role === 'idea_owner') : ?>
+                        <li>
+                            <a href="<?php echo home_url('/submit-idea'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                                <i class="fas fa-plus-circle ml-3"></i>
+                                <span>ثبت ایده جدید</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?php echo home_url('/my-ideas'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                                <i class="fas fa-lightbulb ml-3"></i>
+                                <span>ایده‌های من</span>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                    <li>
+                        <a href="<?php echo home_url('/ideas'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-search ml-3"></i>
+                            <span>کشف ایده‌ها</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo home_url('/notifications'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-bell ml-3"></i>
+                            <span>اعلان‌ها</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo home_url('/messaging'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-envelope ml-3"></i>
+                            <span>پیام‌ها</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo home_url('/profile'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-user-circle ml-3"></i>
+                            <span>پروفایل من</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo home_url('/education'); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-graduation-cap ml-3"></i>
+                            <span>منابع آموزشی</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo wp_logout_url(home_url()); ?>" class="flex items-center p-4 text-[#003049] hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-sign-out-alt ml-3"></i>
+                            <span>خروج</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-6 lg:p-12">
+            
+            <!-- نمایش پیام‌های وضعیت -->
+            <?php ideanet_display_status_message(); ?>
+
+            <h1 class="text-3xl font-bold text-[#003049] mb-8">
+                <?php echo 'خوش آمدید، ' . esc_html($current_user->display_name) . '!'; ?>
+            </h1>
+            
+            <!-- بخش‌های داشبورد بر اساس نقش کاربری -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- بخش برای صاحبان ایده -->
+                <?php if ($user_role === 'idea_owner') : ?>
+                    <div class="p-6 bg-red-50 rounded-xl shadow-inner border-r-4 border-red-500">
+                        <h2 class="text-xl font-bold text-red-700 mb-2">داشبورد صاحب ایده</h2>
+                        <p class="text-gray-700">ایده جدیدی ثبت کنید یا وضعیت ایده‌های قبلی خود را پیگیری نمایید.</p>
+                        <a href="<?php echo home_url('/submit-idea'); ?>" class="inline-block mt-4 px-6 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200">ثبت ایده جدید</a>
+                        <a href="<?php echo home_url('/my-ideas'); ?>" class="inline-block mt-4 px-6 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200">مشاهده ایده‌ها</a>
+                    </div>
+                <?php elseif ($user_role === 'investor') : ?>
+                    <div class="p-6 bg-blue-50 rounded-xl shadow-inner border-r-4 border-blue-500">
+                        <h2 class="text-xl font-bold text-blue-700 mb-2">داشبورد سرمایه‌گذار</h2>
+                        <p class="text-gray-700">آخرین ایده‌های جذاب برای سرمایه‌گذاری را بررسی کنید.</p>
+                        <a href="<?php echo home_url('/ideas'); ?>" class="inline-block mt-4 px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200">جستجوی ایده‌ها</a>
+                    </div>
+                <?php elseif ($user_role === 'specialist') : ?>
+                    <div class="p-6 bg-yellow-50 rounded-xl shadow-inner border-r-4 border-yellow-500">
+                        <h2 class="text-xl font-bold text-yellow-700 mb-2">داشبورد متخصص</h2>
+                        <p class="text-gray-700">برای مشاوره فنی به صاحبان ایده، ایده‌های در انتظار تخصص را بررسی کنید.</p>
+                        <a href="<?php echo home_url('/ideas'); ?>" class="inline-block mt-4 px-6 py-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 transition-colors duration-200">مشاهده ایده‌ها</a>
+                    </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- بخش‌های اضافی داشبورد (نمونه) -->
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold text-[#003049] mb-4">فعالیت‌های اخیر</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <ul class="divide-y divide-gray-200">
+                        <li class="py-4 flex justify-between items-center">
+                            <div class="text-gray-700">
+                                <span class="font-bold">فاطمه احمدی</span> به ایده <span class="text-[#c1121f] font-bold">"اپلیکیشن هوش مصنوعی برای مدیریت مالی"</span> ابراز علاقه کرد.
+                            </div>
+                            <span class="text-sm text-gray-500">۳ ساعت پیش</span>
+                        </li>
+                        <li class="py-4 flex justify-between items-center">
+                            <div class="text-gray-700">
+                                <span class="font-bold">محسن کریمی</span> برای ایده <span class="text-[#c1121f] font-bold">"پلتفرم آموزشی آنلاین"</span> پیشنهاد مشاوره فنی داد.
+                            </div>
+                            <span class="text-sm text-gray-500">۱ روز پیش</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-dashboard.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-education.php ---
+
+<?php
+// این فایل مسئول نمایش صفحه منابع آموزشی است.
+
+get_header(); // فراخوانی هدر سایت
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (!is_user_logged_in()) {
+    // اگر کاربر وارد نشده باشد، به صفحه ورود هدایت می‌شود.
+    wp_redirect(site_url('/login'));
+    exit;
+}
+?>
+
+<div class="container mx-auto py-8 px-4 md:px-0">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-[#003049] mb-6 text-center md:text-right">منابع آموزشی</h1>
+        <p class="text-gray-600 mb-8 text-center md:text-right">
+            در این بخش می‌توانید به منابع آموزشی کاربردی در زمینه کارآفرینی و جذب سرمایه دسترسی پیدا کنید.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- کارت نمونه برای یک مقاله/ویدیو آموزشی -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col items-start text-right">
+                <h3 class="text-lg font-bold text-[#c1121f] mb-2">چگونه یک طرح کسب‌وکار موفق بنویسیم؟</h3>
+                <p class="text-gray-700 text-sm mb-4 flex-1">
+                    در این مقاله، مراحل کلیدی نوشتن یک Business Plan جامع و متقاعدکننده را آموزش می‌دهیم که می‌تواند نظر سرمایه‌گذاران را جلب کند.
+                </p>
+                <a href="#" class="inline-block mt-auto p-2 bg-[#003049] text-white rounded-lg hover:bg-[#c1121f] transition duration-300">مطالعه بیشتر</a>
+            </div>
+
+            <!-- کارت نمونه دیگر -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col items-start text-right">
+                <h3 class="text-lg font-bold text-[#c1121f] mb-2">اصول اولیه جذب سرمایه برای استارتاپ‌ها</h3>
+                <p class="text-gray-700 text-sm mb-4 flex-1">
+                    این راهنما شما را با اصطلاحات و فرآیندهای رایج در دنیای سرمایه‌گذاری خطرپذیر آشنا می‌کند و به شما کمک می‌کند تا برای جلسات سرمایه‌گذاری آماده شوید.
+                </p>
+                <a href="#" class="inline-block mt-auto p-2 bg-[#003049] text-white rounded-lg hover:bg-[#c1121f] transition duration-300">مطالعه بیشتر</a>
+            </div>
+
+            <!-- کارت نمونه دیگر -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col items-start text-right">
+                <h3 class="text-lg font-bold text-[#c1121f] mb-2">بازاریابی دیجیتال برای ایده‌های نوآورانه</h3>
+                <p class="text-gray-700 text-sm mb-4 flex-1">
+                    بیاموزید چگونه از ابزارهای بازاریابی دیجیتال برای معرفی و رشد ایده خود در فضای آنلاین استفاده کنید و به مخاطبان هدف دسترسی پیدا کنید.
+                </p>
+                <a href="#" class="inline-block mt-auto p-2 bg-[#003049] text-white rounded-lg hover:bg-[#c1121f] transition duration-300">مطالعه بیشتر</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+get_footer(); // فراخوانی فوتر سایت
+?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-education.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-ideas.php ---
+
+<?php
+/*
+Template Name: کشف ایده‌ها (IdeaNet)
+*/
+
+get_header();
+
+// دریافت مقادیر جستجو از URL
+$search_query = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+$category = isset($_GET['idea_category']) ? sanitize_text_field($_GET['idea_category']) : '';
+$user_role = ideanet_get_user_role(); // تابع کمکی برای دریافت نقش کاربر
+
+// آرگومان‌های کوئری برای نمایش ایده‌ها
+$args = array(
+    'post_type' => 'idea',
+    'post_status' => 'publish',
+    's' => $search_query, // اعمال جستجو
+);
+
+// اعمال فیلتر دسته‌بندی اگر انتخاب شده باشد
+if (!empty($category)) {
+    $args['tax_query'] = array(
+        array(
+            'taxonomy' => 'idea_category',
+            'field' => 'slug',
+            'terms' => $category,
+        ),
+    );
+}
+
+$ideas_query = new WP_Query($args);
+?>
+
+<main id="primary" class="site-main py-8">
+    <div class="container mx-auto px-4 md:px-0">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            
+            <h1 class="text-3xl font-bold text-[#003049] mb-4 text-center md:text-right">کشف ایده‌های نوآورانه</h1>
+            <p class="text-gray-600 mb-8 text-center md:text-right">
+                ایده‌ها را جستجو کنید و آن‌ها را بر اساس دسته‌بندی فیلتر کنید.
+            </p>
+
+            <!-- فرم جستجو و فیلتر -->
+            <form method="GET" action="<?php echo esc_url(home_url('/ideas')); ?>" class="flex flex-col md:flex-row gap-4 mb-8">
+                <input
+                    type="text"
+                    name="s"
+                    placeholder="جستجو در ایده‌ها..."
+                    value="<?php echo esc_attr($search_query); ?>"
+                    class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c1121f] transition-all duration-300 text-right"
+                />
+                
+                <select name="idea_category" class="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c1121f] transition-all duration-300">
+                    <option value="">همه دسته‌بندی‌ها</option>
+                    <?php
+                        $categories = get_terms(array(
+                            'taxonomy'   => 'idea_category',
+                            'hide_empty' => false,
+                        ));
+                        
+                        if (!is_wp_error($categories) && !empty($categories)) {
+                            foreach ($categories as $cat) {
+                                $selected = ($cat->slug === $category) ? 'selected' : '';
+                                echo '<option value="' . esc_attr($cat->slug) . '" ' . $selected . '>' . esc_html($cat->name) . '</option>';
+                            }
+                        }
+                    ?>
+                </select>
+
+                <button
+                    type="submit"
+                    class="p-3 bg-secondary text-white rounded-lg font-bold hover:bg-primary transition-colors duration-300 transform hover:scale-105"
+                >
+                    اعمال فیلتر
+                </button>
+            </form>
+
+            <?php if ($ideas_query->have_posts()) : ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <?php while ($ideas_query->have_posts()) : $ideas_query->the_post(); ?>
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-xl transition-shadow duration-300 transform hover:scale-105">
+                            <h2 class="text-xl font-bold text-[#003049] mb-2 text-right">
+                                <a href="<?php the_permalink(); ?>" class="hover:text-[#c1121f] transition duration-200"><?php the_title(); ?></a>
+                            </h2>
+                            <p class="text-gray-600 text-sm mb-4 text-right">
+                                <span class="text-gray-500 ml-1">تاریخ انتشار:</span> <?php echo get_the_date('j F Y'); ?>
+                            </p>
+                            <?php 
+                                $categories = get_the_terms(get_the_ID(), 'idea_category');
+                                if (!empty($categories) && !is_wp_error($categories)) {
+                                    $category_names = wp_list_pluck($categories, 'name');
+                                    echo '<div class="text-xs text-[#669bbc] font-semibold mb-4 text-right">دسته‌بندی: ' . implode(', ', $category_names) . '</div>';
+                                }
+                            ?>
+                            <div class="text-gray-700 text-right leading-relaxed mb-4">
+                                <?php the_excerpt(); ?>
+                            </div>
+                            <a href="<?php the_permalink(); ?>" class="text-[#c1121f] font-bold hover:underline text-right block">مشاهده جزئیات →</a>
+                        </div>
+                    <?php endwhile; wp_reset_postdata(); ?>
+                </div>
+            <?php else : ?>
+                <div class="text-center py-10 bg-gray-100 rounded-lg">
+                    <p class="text-lg font-bold text-[#003049]">متاسفانه ایده‌ای با این مشخصات یافت نشد.</p>
+                    <p class="text-gray-600 mt-2">لطفا جستجوی خود را تغییر دهید یا فیلترها را حذف کنید.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-ideas.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-login.php ---
+
+<?php
+/*
+Template Name: صفحه ورود (IdeaNet)
+*/
+
+// بررسی اینکه آیا کاربر قبلاً وارد شده است
+// اگر بله، به صفحه داشبورد هدایت می‌شود تا از ورود مجدد جلوگیری شود.
+if (is_user_logged_in()) {
+    wp_redirect(home_url('/dashboard'));
+    exit;
+}
+
+// فراخوانی هدر قالب وردپرس
+get_header();
+?>
+
+<!--
+    این تمپلیت، فرم ورود به IdeaNet را نمایش می‌دهد.
+    فرم به صورت پیش‌فرض به wp-login.php وردپرس پست می‌شود تا از سیستم احراز هویت داخلی استفاده کند.
+-->
+<main id="primary" class="site-main flex items-center justify-center min-h-screen py-10">
+    <div class="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md text-center">
+        <!-- عنوان فرم -->
+        <h2 class="text-3xl font-bold text-primary mb-6">
+            ورود به IdeaNet
+        </h2>
+
+        <!-- توضیحات فرم -->
+        <p class="text-text mb-8">
+            با حساب کاربری خود وارد شوید و ایده‌های جدید را کشف کنید.
+        </p>
+
+        <!-- فرم ورود -->
+        <form action="<?php echo esc_url(site_url('wp-login.php', 'login_post')); ?>" method="post" class="space-y-6">
+            <!-- فیلد نام کاربری یا ایمیل -->
+            <div>
+                <input
+                    type="text"
+                    id="username"
+                    name="log"
+                    placeholder="نام کاربری یا ایمیل"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+                >
+            </div>
+
+            <!-- فیلد رمز عبور -->
+            <div>
+                <input
+                    type="password"
+                    id="password"
+                    name="pwd"
+                    placeholder="رمز عبور"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+                >
+            </div>
+
+            <!-- دکمه ورود -->
+            <button
+                type="submit"
+                class="w-full bg-secondary text-white py-3 rounded-lg font-bold text-lg transition-all duration-300 hover:bg-primary"
+            >
+                ورود
+            </button>
+            <?php wp_nonce_field('wordpress-login', '_wpnonce'); ?>
+        </form>
+
+        <!-- لینک‌های کمکی -->
+        <div class="mt-6 text-sm">
+            <a href="<?php echo wp_lostpassword_url(); ?>" class="text-accent hover:underline transition-colors">رمز عبور را فراموش کرده‌اید؟</a>
+            <span class="mx-2 text-gray-500">|</span>
+            <a href="<?php echo home_url('/register'); ?>" class="text-accent hover:underline transition-colors">ثبت‌نام</a>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-login.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-messaging.php ---
+
+<?php
+// این فایل مسئول نمایش سیستم پیام‌رسان داخلی است.
+
+get_header(); // فراخوانی هدر سایت
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (!is_user_logged_in()) {
+    // اگر کاربر وارد نشده باشد، به صفحه ورود هدایت می‌شود.
+    wp_redirect(site_url('/login'));
+    exit;
+}
+
+$current_user = wp_get_current_user();
+?>
+
+<div class="container mx-auto py-8 px-4 md:px-0">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-[#003049] mb-6 text-center md:text-right">پیام‌های خصوصی</h1>
+        <p class="text-gray-600 mb-8 text-center md:text-right">
+            در این بخش می‌توانید با سایر کاربران پلتفرم به صورت خصوصی در ارتباط باشید.
+        </p>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- سایدبار گفتگوها -->
+            <div class="w-full md:w-1/3 bg-gray-50 p-4 rounded-lg shadow-inner">
+                <h2 class="text-xl font-bold text-[#003049] mb-4 text-center">گفتگوها</h2>
+                <ul class="space-y-2">
+                    <!-- نمونه‌ای از گفتگوهای اخیر -->
+                    <li class="p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-[#c1121f]">امیر رضایی</span>
+                            <span class="text-xs text-gray-500">دیروز</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1 truncate">سلام، درباره ایده شما سوالی داشتم...</p>
+                    </li>
+                    <li class="p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-[#c1121f]">مهندس کریمی</span>
+                            <span class="text-xs text-gray-500">۳ روز پیش</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1 truncate">قرارداد NDA رو آماده کردم...</p>
+                    </li>
+                    <li class="p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-[#c1121f]">فاطمه حسینی</span>
+                            <span class="text-xs text-gray-500">هفته پیش</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1 truncate">پیشنهاد سرمایه‌گذاری جدید...</p>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- بخش نمایش پیام‌ها و فرم ارسال -->
+            <div class="w-full md:w-2/3 bg-gray-50 p-4 rounded-lg shadow-inner flex flex-col justify-between" style="min-height: 500px;">
+                <h2 class="text-xl font-bold text-[#003049] mb-4 text-center">گفتگو با امیر رضایی</h2>
+                
+                <!-- نمونه پیام‌ها -->
+                <div class="flex-1 overflow-y-auto space-y-4 p-4">
+                    <div class="flex justify-start">
+                        <div class="bg-[#c1121f] text-white p-3 rounded-2xl max-w-xs shadow">
+                            سلام، درباره ایده شما سوالی داشتم. می‌تونید بیشتر توضیح بدید؟
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <div class="bg-[#003049] text-white p-3 rounded-2xl max-w-xs shadow">
+                            سلام، بله حتماً. چه سوالی دارید؟
+                        </div>
+                    </div>
+                </div>
+
+                <!-- فرم ارسال پیام -->
+                <form class="flex mt-4 gap-2">
+                    <input type="text" placeholder="پیام خود را بنویسید..." class="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c1121f] text-right">
+                    <button type="submit" class="p-3 bg-[#003049] text-white rounded-lg hover:bg-[#c1121f] transition duration-300">ارسال</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+get_footer(); // فراخوانی فوتر سایت
+?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-messaging.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-my-ideas.php ---
+
+<?php
+/*
+Template Name: ایده‌های من (IdeaNet)
+*/
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+// اگر کاربر وارد نشده باشد، به صفحه ورود هدایت می‌شود.
+if (!is_user_logged_in()) {
+    wp_redirect(home_url('/login'));
+    exit;
+}
+
+get_header();
+
+$current_user = wp_get_current_user();
+$user_role = ideanet_get_user_role();
+
+// بررسی اینکه آیا کاربر صاحب ایده است یا خیر
+// اگر نقش کاربر idea_owner نباشد، دسترسی را محدود می‌کند.
+if ($user_role !== 'idea_owner') {
+    echo '<div class="text-center p-10 mt-20 bg-white rounded-lg shadow-md max-w-lg mx-auto">
+            <h1 class="text-3xl font-bold mb-4">دسترسی محدود</h1>
+            <p>شما مجاز به مشاهده این صفحه نیستید.</p>
+          </div>';
+    get_footer();
+    exit;
+}
+
+// آرگومان‌های کوئری برای دریافت ایده‌های کاربر فعلی
+$args = array(
+    'post_type'      => 'idea',
+    'post_status'    => 'any', // 'any' برای نمایش ایده‌های در حال بررسی و منتشر شده
+    'author'         => $current_user->ID,
+    'posts_per_page' => -1, // نمایش همه ایده‌ها
+);
+
+// اجرای کوئری
+$my_ideas_query = new WP_Query($args);
+?>
+
+<main id="primary" class="site-main py-10">
+    <div class="container mx-auto px-4 md:px-0">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h1 class="text-3xl font-bold text-primary mb-6 text-center md:text-right">ایده‌های من</h1>
+            <p class="text-gray-600 mb-8 text-center md:text-right">
+                در این بخش می‌توانید ایده‌هایی که ثبت کرده‌اید را مدیریت و پیگیری کنید.
+            </p>
+            
+            <?php if ($my_ideas_query->have_posts()) : ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <?php while ($my_ideas_query->have_posts()) : $my_ideas_query->the_post(); ?>
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-inner flex flex-col items-start text-right border-r-4 border-accent hover:shadow-xl transition-shadow duration-300">
+                            <h2 class="text-xl font-bold text-text mb-2">
+                                <?php the_title(); ?>
+                            </h2>
+                            <p class="text-gray-600 text-sm mb-4">
+                                ثبت‌شده در: <?php echo get_the_date('j F Y'); ?>
+                            </p>
+                            <div class="text-gray-700 text-sm leading-relaxed mb-4 flex-1">
+                                <?php the_excerpt(); ?>
+                            </div>
+                            <div class="flex justify-between items-center w-full mt-auto pt-4 border-t border-gray-200">
+                                <span class="text-sm font-semibold px-3 py-1 rounded-full
+                                    <?php
+                                        $status = get_post_status(get_the_ID());
+                                        if ($status === 'publish') {
+                                            echo 'bg-green-100 text-green-700';
+                                        } elseif ($status === 'pending') {
+                                            echo 'bg-red-100 text-red-700';
+                                        } else {
+                                            echo 'bg-yellow-100 text-yellow-700';
+                                        }
+                                    ?>
+                                ">
+                                    <?php
+                                        // نمایش وضعیت به صورت فارسی
+                                        if ($status === 'publish') {
+                                            echo 'تأیید شده';
+                                        } elseif ($status === 'pending') {
+                                            echo 'در حال بررسی';
+                                        } else {
+                                            echo 'پیش‌نویس';
+                                        }
+                                    ?>
+                                </span>
+                                <a href="<?php the_permalink(); ?>" class="text-secondary font-bold hover:underline">مشاهده جزئیات →</a>
+                            </div>
+                        </div>
+                    <?php endwhile; wp_reset_postdata(); ?>
+                </div>
+            <?php else : ?>
+                <div class="text-center py-10 bg-gray-50 rounded-lg">
+                    <p class="text-lg font-bold text-primary mb-2">شما هنوز ایده‌ای ثبت نکرده‌اید.</p>
+                    <p class="text-gray-600 mb-4">برای شروع، ایده جدید خود را ثبت کنید.</p>
+                    <a href="<?php echo home_url('/submit-idea'); ?>" class="inline-block px-6 py-3 bg-secondary text-white rounded-lg font-bold hover:bg-secondary/90 transition-colors">ثبت ایده جدید</a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-my-ideas.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-nda.php ---
+
+<?php
+/*
+Template Name: NDA (IdeaNet)
+*/
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (!is_user_logged_in()) {
+    // اگر کاربر وارد نشده باشد، به صفحه ورود هدایت می‌شود.
+    wp_redirect(site_url('/login'));
+    exit;
+}
+
+get_header(); // فراخوانی هدر سایت
+
+// دریافت اطلاعات کاربر فعلی و نقش او
+$current_user = wp_get_current_user();
+$user_role = ideanet_get_user_role();
+
+// شبیه‌سازی اطلاعات ایده و NDA (این داده‌ها باید از دیتابیس واقعی دریافت شوند)
+$idea_title = 'پلتفرم هوشمند کشاورزی';
+$nda_content = "
+<p>این قرارداد عدم افشا (NDA) در تاریخ [تاریخ] بین <strong>صاحب ایده: امیر رضایی</strong> و <strong>سرمایه‌گذار: [نام شما]</strong> منعقد می‌گردد.</p>
+<p><strong>۱. موضوع قرارداد:</strong> طرف افشاکننده (سرمایه‌گذار) متعهد می‌شود تمامی اطلاعات محرمانه و اختصاصی مربوط به ایده '{$idea_title}' شامل جزئیات فنی، مدل کسب‌وکار، طرح‌های بازاریابی و هرگونه داده‌ای که از صاحب ایده دریافت می‌کند را محرمانه نگه دارد.</p>
+<p><strong>۲. تعهد به محرمانگی:</strong> طرف افشاکننده متعهد می‌شود که اطلاعات محرمانه را به هیچ شخص ثالث، شرکت یا نهادی، بدون رضایت کتبی صاحب ایده، افشا نکند.</p>
+<p><strong>۳. مدت قرارداد:</strong> این قرارداد به مدت ۵ سال از تاریخ امضای آن معتبر است.</p>
+<p><strong>۴. جریمه نقض قرارداد:</strong> در صورت نقض هر یک از مفاد این قرارداد، طرف افشاکننده موظف به پرداخت جریمه‌ای معادل [مبلغ جریمه] به صاحب ایده خواهد بود.</p>
+<p><strong>۵. امضا:</strong> با کلیک بر روی دکمه «امضای قرارداد»، شما به صورت دیجیتال این توافقنامه را امضا و به آن پایبند خواهید بود.</p>
+";
+?>
+
+<div class="container mx-auto py-8 px-4 md:px-0">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-[#003049] mb-6 text-center md:text-right">قرارداد NDA (عدم افشا)</h1>
+        <p class="text-gray-600 mb-8 text-center md:text-right">
+            در این صفحه می‌توانید قراردادهای عدم افشا را مشاهده و امضا کنید تا به جزئیات ایده‌ها دسترسی کامل داشته باشید.
+        </p>
+
+        <?php if ($user_role !== 'investor') : ?>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
+                <p class="font-bold">دسترسی محدود</p>
+                <p>شما برای مشاهده و امضای قراردادهای NDA، باید نقش «سرمایه‌گذار» داشته باشید.</p>
+            </div>
+        <?php else : ?>
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h2 class="text-xl font-bold text-[#c1121f] mb-4 text-center">عنوان قرارداد: NDA ایده '<?php echo esc_html($idea_title); ?>'</h2>
+                
+                <!-- متن قرارداد با استفاده از کلاس prose برای خوانایی بهتر -->
+                <div class="prose max-w-none text-right text-gray-700 leading-relaxed mb-6" dir="rtl">
+                    <?php echo $nda_content; ?>
+                </div>
+
+                <!-- بخش امضای قرارداد و دکمه -->
+                <div class="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
+                    <button
+                        id="sign-nda-btn"
+                        class="w-full md:w-auto bg-secondary text-white font-bold py-3 px-6 rounded-lg hover:bg-secondary/90 transition-colors"
+                    >
+                        امضای قرارداد
+                    </button>
+                    <div id="signing-status" class="w-full md:w-1/2 text-center md:text-right text-gray-500 italic hidden">
+                        در حال امضای قرارداد...
+                    </div>
+                    <div id="signed-success" class="w-full md:w-1/2 text-center md:text-right text-green-700 font-bold hidden">
+                        <p>قرارداد با موفقیت امضا شد! اکنون می‌توانید به جزئیات کامل ایده دسترسی پیدا کنید.</p>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const signBtn = document.getElementById('sign-nda-btn');
+        const signingStatus = document.getElementById('signing-status');
+        const signedSuccess = document.getElementById('signed-success');
+
+        if (signBtn) {
+            signBtn.addEventListener('click', () => {
+                // نمایش وضعیت "در حال امضا"
+                signBtn.disabled = true;
+                signBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                signingStatus.classList.remove('hidden');
+
+                // شبیه‌سازی فرآیند امضای دیجیتال
+                setTimeout(() => {
+                    signingStatus.classList.add('hidden');
+                    signedSuccess.classList.remove('hidden');
+                    
+                    // در اینجا باید منطق واقعی برای ثبت امضا در دیتابیس و اعطای دسترسی پیاده‌سازی شود
+                    // برای مثال، ارسال یک درخواست AJAX به سرور وردپرس
+                    // fetch('<?php echo home_url('/wp-json/ideanet/v1/sign-nda'); ?>', {
+                    //     method: 'POST',
+                    //     headers: {
+                    //         'Content-Type': 'application/json',
+                    //         'X-WP-Nonce': '<?php echo wp_create_nonce('wp_rest'); ?>'
+                    //     },
+                    //     body: JSON.stringify({ idea_id: '<?php echo get_the_ID(); ?>' })
+                    // })
+                    // .then(response => response.json())
+                    // .then(data => {
+                    //     if (data.success) {
+                    //         signedSuccess.classList.remove('hidden');
+                    //         // هدایت به صفحه ایده برای نمایش جزئیات کامل
+                    //         // window.location.href = '<?php the_permalink(); ?>?access=full';
+                    //     } else {
+                    //         alert('مشکلی در امضای قرارداد رخ داد.');
+                    //         signBtn.disabled = false;
+                    //         signBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    //     }
+                    // })
+                    // .catch(error => {
+                    //     console.error('Error:', error);
+                    //     alert('خطا در برقراری ارتباط با سرور.');
+                    //     signBtn.disabled = false;
+                    //     signBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    // });
+
+                }, 2000); // شبیه‌سازی تاخیر ۲ ثانیه برای امضا
+            });
+        }
+    });
+</script>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-nda.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-notifications.php ---
+
+<?php
+// این فایل مسئول نمایش صفحه اعلان‌ها برای کاربران است.
+
+get_header(); // فراخوانی هدر سایت
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (!is_user_logged_in()) {
+    // اگر کاربر وارد نشده باشد، به صفحه ورود هدایت می‌شود.
+    wp_redirect(site_url('/login'));
+    exit;
+}
+?>
+
+<div class="container mx-auto py-8 px-4 md:px-0">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold text-[#003049] mb-6 text-center md:text-right">اعلان‌ها</h1>
+        <p class="text-gray-600 mb-8 text-center md:text-right">
+            اعلان‌های جدید و مهم شما در این بخش نمایش داده می‌شوند.
+        </p>
+
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+            <ul class="space-y-4">
+                <!-- نمونه یک اعلان جدید -->
+                <li class="flex items-start bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <div class="w-2 h-2 bg-[#c1121f] rounded-full mt-2 ml-4"></div>
+                    <div>
+                        <p class="font-bold text-[#003049] text-right mb-1">قرارداد NDA جدید</p>
+                        <p class="text-gray-700 text-right text-sm">
+                            قرارداد NDA برای ایده 'پلتفرم هوشمند کشاورزی' توسط سرمایه‌گذار **امیر رضایی** امضا شد.
+                        </p>
+                        <span class="text-xs text-gray-400 block text-left mt-2">۲ ساعت پیش</span>
+                    </div>
+                </li>
+                <!-- نمونه یک اعلان خوانده شده -->
+                <li class="flex items-start bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full mt-2 ml-4"></div>
+                    <div>
+                        <p class="font-bold text-[#003049] text-right mb-1">پیام جدید</p>
+                        <p class="text-gray-700 text-right text-sm">
+                            شما یک پیام جدید از **مهندس کریمی** دارید.
+                        </p>
+                        <span class="text-xs text-gray-400 block text-left mt-2">۱ روز پیش</span>
+                    </div>
+                </li>
+                <!-- نمونه یک اعلان دیگر -->
+                <li class="flex items-start bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full mt-2 ml-4"></div>
+                    <div>
+                        <p class="font-bold text-[#003049] text-right mb-1">ایده شما تأیید شد</p>
+                        <p class="text-gray-700 text-right text-sm">
+                            ایده 'فروشگاه آنلاین محصولات دست‌ساز' برای نمایش عمومی تأیید شد.
+                        </p>
+                        <span class="text-xs text-gray-400 block text-left mt-2">۳ روز پیش</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<?php
+get_footer(); // فراخوانی فوتر سایت
+?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-notifications.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-profile.php ---
+
+<?php
+/*
+Template Name: پروفایل کاربر (IdeaNet)
+*/
+
+// Check if user is logged in
+if (!is_user_logged_in()) {
+    wp_redirect(home_url('/login'));
+    exit;
+}
+
+get_header();
+
+$current_user = wp_get_current_user();
+$user_role = ideanet_get_user_role();
+
+// Mock data for user profile
+$mock_data = [
+    'idea_owner' => [
+        'name' => 'سعید رضایی',
+        'bio' => 'کارآفرین مشتاق با بیش از ۵ سال تجربه در حوزه فناوری. به دنبال حل مشکلات روزمره با ایده‌های نوآورانه هستم.',
+        'skills' => ['برنامه‌نویسی', 'طراحی محصول', 'بازاریابی دیجیتال'],
+        'socials' => [
+            'linkedin' => '#',
+            'twitter' => '#',
+        ],
+    ],
+    'investor' => [
+        'name' => 'فاطمه احمدی',
+        'bio' => 'سرمایه‌گذار خطرپذیر در حوزه استارتاپ‌های فناوری. به دنبال ایده‌هایی با پتانسیل رشد بالا در زمینه فین‌تک و سلامت دیجیتال.',
+        'investment_focus' => ['فین‌تک', 'سلامت دیجیتال', 'هوش مصنوعی'],
+        'socials' => [
+            'linkedin' => '#',
+        ],
+    ],
+    'specialist' => [
+        'name' => 'مهندس کریمی',
+        'bio' => 'متخصص هوش مصنوعی و یادگیری ماشین با تمرکز بر راه‌حل‌های بهینه‌سازی صنعتی و تحلیل داده.',
+        'expertise_areas' => ['هوش مصنوعی', 'یادگیری ماشین', 'تحلیل داده'],
+        'socials' => [
+            'linkedin' => '#',
+            'github' => '#',
+        ],
+    ],
+];
+$profile_data = $mock_data[$user_role] ?? $mock_data['idea_owner']; // Fallback
+
+?>
+
+<main id="primary" class="site-main py-10">
+    <div class="container mx-auto px-4 md:px-0">
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto text-center md:text-right">
+            <h1 class="text-3xl font-bold text-primary mb-6">پروفایل کاربری</h1>
+            
+            <div class="flex flex-col md:flex-row items-center md:items-start md:space-x-8 md:space-x-reverse">
+                <!-- User Avatar/Image -->
+                <div class="w-32 h-32 rounded-full overflow-hidden mb-6 md:mb-0">
+                    <img src="https://placehold.co/128x128/c1121f/ffffff?text=<?php echo substr($profile_data['name'], 0, 1); ?>" alt="User Avatar" class="w-full h-full object-cover">
+                </div>
+                
+                <!-- User Info -->
+                <div class="flex-1">
+                    <h2 class="text-2xl font-bold text-text mb-2"><?php echo esc_html($profile_data['name']); ?></h2>
+                    <p class="text-gray-500 mb-4"><?php echo esc_html($user_role === 'idea_owner' ? 'صاحب ایده' : ($user_role === 'investor' ? 'سرمایه‌گذار' : 'متخصص')); ?></p>
+                    
+                    <p class="text-gray-700 leading-relaxed mb-6">
+                        <?php echo nl2br(esc_html($profile_data['bio'])); ?>
+                    </p>
+                    
+                    <!-- Details based on role -->
+                    <?php if ($user_role === 'idea_owner') : ?>
+                        <div class="mb-6">
+                            <h3 class="font-semibold text-lg text-primary mb-2">مهارت‌ها</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($profile_data['skills'] as $skill) : ?>
+                                    <span class="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm font-medium"><?php echo esc_html($skill); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php elseif ($user_role === 'investor') : ?>
+                        <div class="mb-6">
+                            <h3 class="font-semibold text-lg text-primary mb-2">حوزه سرمایه‌گذاری</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($profile_data['investment_focus'] as $focus) : ?>
+                                    <span class="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm font-medium"><?php echo esc_html($focus); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php elseif ($user_role === 'specialist') : ?>
+                        <div class="mb-6">
+                            <h3 class="font-semibold text-lg text-primary mb-2">زمینه‌های تخصص</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($profile_data['expertise_areas'] as $area) : ?>
+                                    <span class="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm font-medium"><?php echo esc_html($area); ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Social Media Links -->
+                    <?php if (!empty($profile_data['socials'])) : ?>
+                        <div class="flex justify-center md:justify-start space-x-4 space-x-reverse">
+                            <?php if (isset($profile_data['socials']['linkedin'])) : ?>
+                                <a href="<?php echo esc_url($profile_data['socials']['linkedin']); ?>" target="_blank" class="text-gray-400 hover:text-blue-600 transition-colors duration-200">
+                                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.768s.784-1.767 1.75-1.767 1.75.79 1.75 1.767c0 .978-.784 1.768-1.75 1.768zm13.5 12.268h-3v-5.604c0-3.368-4.172-3.238-4.172 0v5.604h-3v-11h3v1.765c1.396-2.586 7.172-2.722 7.172 2.503v6.732z"/>
+                                    </svg>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (isset($profile_data['socials']['twitter'])) : ?>
+                                <a href="<?php echo esc_url($profile_data['socials']['twitter']); ?>" target="_blank" class="text-gray-400 hover:text-blue-400 transition-colors duration-200">
+                                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.585 0-6.49 2.905-6.49 6.49 0 .508.058 1.002.169 1.478-5.397-.27-10.198-2.868-13.403-6.811-.563.961-.888 2.083-.888 3.255 0 2.246 1.144 4.223 2.875 5.383-.672-.02-1.303-.205-1.859-.513v.081c0 3.167 2.26 5.8 5.25 6.401-.555.151-1.137.232-1.742.232-.427 0-.84-.041-1.246-.118.835 2.618 3.254 4.524 6.136 4.577-2.235 1.752-5.07 2.808-8.113 2.808-.528 0-1.05-.031-1.565-.091 2.887 1.852 6.305 2.943 9.944 2.943 11.92 0 18.232-9.886 18.232-18.49 0-.281-.007-.562-.02-.843.996-.723 1.868-1.625 2.555-2.657z"/>
+                                    </svg>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (isset($profile_data['socials']['github'])) : ?>
+                                <a href="<?php echo esc_url($profile_data['socials']['github']); ?>" target="_blank" class="text-gray-400 hover:text-gray-800 transition-colors duration-200">
+                                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.809 1.305 3.492.997.108-.775.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.932 0-1.312.465-2.388 1.235-3.23-.125-.3-.538-1.527.12-3.185 0 0 1.008-.323 3.3 1.23.957-.267 1.983-.4 3.003-.404 1.02.004 2.046.137 3.003.404 2.29-1.553 3.297-1.23 3.297-1.23.658 1.658.245 2.885.12 3.185.77.842 1.235 1.918 1.235 3.23 0 4.61-2.802 5.626-5.474 5.924.43.37.818 1.102.818 2.22 0 1.606-.015 2.899-.015 3.284 0 .308.194.673.801.576 4.765-1.589 8.202-6.086 8.202-11.386 0-6.627-5.373-12-12-12z"/>
+                                    </svg>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-profile.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-register.php ---
+
+<?php
+/*
+Template Name: صفحه ثبت‌نام (IdeaNet)
+*/
+
+// فراخوانی هدر
+get_header();
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (is_user_logged_in()) {
+    wp_redirect(home_url('/dashboard'));
+    exit;
+}
+
+// نمایش پیام خطا در صورت وجود
+$error_message = '';
+if (isset($_GET['reg_status'])) {
+    $status = sanitize_text_field($_GET['reg_status']);
+    if ($status === 'failed') {
+        $error_message = 'ثبت‌نام با مشکل مواجه شد. لطفا مجدداً تلاش کنید.';
+    } elseif ($status === 'username_exists') {
+        $error_message = 'این نام کاربری قبلاً ثبت شده است. لطفاً نام دیگری را انتخاب کنید.';
+    } elseif ($status === 'email_exists') {
+        $error_message = 'این ایمیل قبلاً ثبت شده است. اگر حساب دارید، وارد شوید.';
+    } elseif ($status === 'empty_fields') {
+        $error_message = 'لطفا تمامی فیلدهای الزامی را پر کنید.';
+    }
+}
+?>
+
+<!--
+    صفحه ثبت‌نام در IdeaNet
+    یک فرم ساده و مینیمال برای ثبت‌نام کاربران جدید
+-->
+<main id="primary" class="site-main flex items-center justify-center min-h-screen py-10">
+    <div class="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md text-center">
+        <!-- عنوان فرم -->
+        <h2 class="text-3xl font-bold text-primary mb-6">
+            ثبت‌نام در IdeaNet
+        </h2>
+
+        <!-- توضیحات فرم -->
+        <p class="text-text mb-8">
+            به جامعه بزرگ IdeaNet بپیوندید و ایده خود را به واقعیت تبدیل کنید.
+        </p>
+
+        <!-- پیام خطا -->
+        <?php if ($error_message) : ?>
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+                <span class="block sm:inline"><?php echo esc_html($error_message); ?></span>
+            </div>
+        <?php endif; ?>
+
+        <!-- فرم ثبت‌نام -->
+        <form action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="post" class="space-y-6">
+            <input type="hidden" name="action" value="ideanet_register_user">
+            
+            <!-- فیلد نام کاربری -->
+            <div>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="user_login" 
+                    placeholder="نام کاربری"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors text-right"
+                    required
+                >
+            </div>
+
+            <!-- فیلد ایمیل -->
+            <div>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="user_email" 
+                    placeholder="ایمیل"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors text-right"
+                    required
+                >
+            </div>
+
+            <!-- فیلد رمز عبور -->
+            <div>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="user_pass" 
+                    placeholder="رمز عبور"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors text-right"
+                    required
+                >
+            </div>
+
+            <!-- فیلد نقش کاربری -->
+            <div class="flex flex-col items-center md:items-start text-right">
+                <label class="text-gray-700 font-bold mb-2">نقش کاربری خود را انتخاب کنید:</label>
+                <div class="flex flex-wrap justify-center md:justify-start gap-4 space-y-2 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="user_role" value="idea_owner" class="form-radio text-primary h-4 w-4" checked>
+                        <span class="mr-2 text-gray-700">صاحب ایده</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="user_role" value="investor" class="form-radio text-primary h-4 w-4">
+                        <span class="mr-2 text-gray-700">سرمایه‌گذار</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="user_role" value="specialist" class="form-radio text-primary h-4 w-4">
+                        <span class="mr-2 text-gray-700">متخصص</span>
+                    </label>
+                </div>
+            </div>
+
+            <?php wp_nonce_field('ideanet-register-nonce', 'ideanet_register_nonce'); ?>
+            <input type="hidden" name="redirect_to" value="<?php echo esc_url(home_url('/dashboard')); ?>" />
+
+            <!-- دکمه ثبت‌نام -->
+            <button
+                type="submit"
+                class="w-full bg-secondary text-white py-3 rounded-lg font-bold text-lg transition-all duration-300 hover:bg-primary"
+            >
+                ثبت‌نام
+            </button>
+        </form>
+
+        <!-- لینک ورود -->
+        <div class="mt-6 text-sm">
+            <a href="<?php echo home_url('/login'); ?>" class="text-accent hover:underline transition-colors">
+                قبلاً ثبت‌نام کرده‌اید؟ وارد شوید.
+            </a>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-register.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-submit-idea.php ---
+
+<?php
+/*
+Template Name: ثبت ایده جدید (IdeaNet)
+*/
+
+// بررسی اینکه آیا کاربر وارد شده است یا خیر
+if (!is_user_logged_in()) {
+    wp_redirect(home_url('/login'));
+    exit;
+}
+
+get_header();
+
+// نقش کاربری فعلی را دریافت می‌کند
+// (این تابع را قبلاً در functions.php تعریف کرده‌اید)
+$user_role = ideanet_get_user_role();
+
+// اگر کاربر صاحب ایده نبود، دسترسی را محدود می‌کند
+if ($user_role !== 'idea_owner') {
+    echo '<main id="primary" class="site-main flex items-center justify-center min-h-screen py-10">';
+    echo '  <div class="text-center p-10 mt-20 bg-white rounded-lg shadow-md max-w-lg mx-auto">';
+    echo '    <h1 class="text-3xl font-bold mb-4 text-primary">دسترسی محدود</h1>';
+    echo '    <p class="text-text">شما برای ثبت ایده جدید مجوز لازم را ندارید.</p>';
+    echo '  </div>';
+    echo '</main>';
+    get_footer();
+    exit;
+}
+
+?>
+
+<main id="primary" class="site-main py-10">
+    <div class="container mx-auto px-4 md:px-0">
+        <div class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-2xl shadow-2xl">
+            <h1 class="text-3xl font-bold text-primary mb-6 text-center md:text-right">ثبت ایده جدید</h1>
+            <p class="text-text mb-8 text-center md:text-right">
+                جزئیات ایده خود را در فرم زیر وارد کنید تا به سرمایه‌گذاران و متخصصان نمایش داده شود.
+            </p>
+
+            <!-- 
+                فرم به آدرس فعلی خودش ارسال می‌شود
+                این کار باعث می‌شود تابع ideanet_handle_new_idea_submission در functions.php فعال شود
+            -->
+            <form id="submit-idea-form" action="" method="post" class="space-y-6">
+                <!-- فیلد عنوان ایده -->
+                <div>
+                    <label for="idea-title" class="block text-text font-bold mb-2 text-right">عنوان ایده <span class="text-red-500">*</span></label>
+                    <input type="text" id="idea-title" name="idea-title" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors">
+                </div>
+
+                <!-- فیلد توضیحات ایده -->
+                <div>
+                    <label for="idea-content" class="block text-text font-bold mb-2 text-right">توضیحات کامل <span class="text-red-500">*</span></label>
+                    <textarea id="idea-content" name="idea-content" rows="8" required
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent transition-colors"></textarea>
+                </div>
+
+                <!-- فیلد دسته‌بندی ایده -->
+                <div>
+                    <label for="idea-category" class="block text-text font-bold mb-2 text-right">دسته‌بندی <span class="text-red-500">*</span></label>
+                    <select id="idea-category" name="idea-category" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent transition-colors">
+                        <option value="">انتخاب کنید...</option>
+                        <option value="software">نرم‌افزار</option>
+                        <option value="hardware">سخت‌افزار</option>
+                        <option value="biotech">بیوتکنولوژی</option>
+                        <option value="fintech">فین‌تک</option>
+                        <option value="edtech">آموزش</option>
+                        <option value="other">سایر</option>
+                    </select>
+                </div>
+
+                <!-- فیلد سطح دسترسی -->
+                <div class="flex flex-col">
+                    <label class="block text-text font-bold mb-2 text-right">سطح دسترسی</label>
+                    <div class="flex flex-col md:flex-row md:space-y-0 md:space-x-4 md:space-x-reverse">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="security-level" value="public" class="form-radio text-primary h-4 w-4" checked>
+                            <span class="mr-2 text-gray-700">عمومی (قابل مشاهده برای همه)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="security-level" value="nda" class="form-radio text-primary h-4 w-4">
+                            <span class="mr-2 text-gray-700">قرارداد NDA (محدود به سرمایه‌گذاران و متخصصان)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="security-level" value="private" class="form-radio text-primary h-4 w-4">
+                            <span class="mr-2 text-gray-700">خصوصی (فقط برای صاحب ایده)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- دکمه ثبت ایده -->
+                <?php wp_nonce_field('submit_idea_nonce_action', 'submit_idea_nonce'); ?>
+                <button type="submit" class="w-full bg-secondary text-white font-bold py-3 px-6 rounded-lg hover:bg-secondary/90 transition-colors transform hover:scale-105">
+                    ثبت ایده
+                </button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\page-submit-idea.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\single-idea.php ---
+
+<?php
+// این فایل مسئول نمایش جزئیات یک ایده است.
+
+get_header(); // فراخوانی هدر سایت
+
+// بررسی اینکه آیا یک ایده نمایش داده می‌شود
+if (have_posts()) : while (have_posts()) : the_post();
+    // عنوان ایده
+    $idea_title = get_the_title();
+    
+    // شبیه‌سازی سطح دسترسی
+    $user_access_level = 0; // سطح 0 = عمومی
+    $has_signed_nda = false; // شبیه‌سازی وضعیت امضای NDA
+
+    if (is_user_logged_in()) {
+        $current_user = wp_get_current_user();
+        $user_role = ideanet_get_user_role();
+        
+        if ($user_role === 'investor' || $user_role === 'specialist') {
+            $user_access_level = 1; // سطح 1: دسترسی به جزئیات خصوصی
+            
+            // شبیه‌سازی بررسی اینکه آیا کاربر NDA را برای این ایده امضا کرده است.
+            // در آینده این منطق باید با بررسی دیتابیس جایگزین شود.
+            // برای مثال، بررسی یک فیلد سفارشی در پروفایل کاربر یا یک جدول جداگانه.
+            // به عنوان نمونه، فرض می‌کنیم یک کاربر با نقش "سرمایه‌گذار" به صورت پیش‌فرض دسترسی سطح 2 را دارد.
+            if ($user_role === 'investor' && isset($_GET['access']) && $_GET['access'] === 'full') {
+                 $has_signed_nda = true;
+            }
+        }
+    }
+
+    // شبیه‌سازی محتوای مراحل مختلف (این اطلاعات باید از Custom Fields دریافت شوند)
+    $public_details = get_the_content();
+    $private_details = 'این جزئیات برای اعضای تأیید شده قابل مشاهده است. (مدل کسب‌وکار، تیم اجرایی)';
+    $nda_details = 'این جزئیات کامل و فنی پس از امضای قرارداد NDA قابل مشاهده است. (طرح‌های فنی کامل، پیش‌بینی‌های مالی دقیق، و اطلاعات محرمانه)';
+?>
+
+<div class="container mx-auto py-8">
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-[#003049] mb-4 text-center"><?php echo esc_html($idea_title); ?></h1>
+        
+        <!-- مرحله ۱: معرفی کوتاه و عمومی (همیشه قابل مشاهده) -->
+        <div class="border-t border-[#669bbc] pt-4 mt-4">
+            <h2 class="text-2xl font-bold text-[#c1121f] mb-4">مرحله ۱: معرفی کوتاه و عمومی</h2>
+            <div class="text-[#003049] leading-relaxed rtl">
+                <?php echo apply_filters('the_content', $public_details); ?>
+            </div>
+        </div>
+        
+        <!-- مرحله ۲: جزئیات برای اعضای تأیید شده (سرمایه‌گذاران و متخصصان) -->
+        <?php if ($user_access_level >= 1) : ?>
+            <div class="border-t border-[#669bbc] pt-4 mt-6">
+                <h2 class="text-2xl font-bold text-[#c1121f] mb-4">مرحله ۲: جزئیات برای اعضای تأیید شده</h2>
+                <div class="text-[#003049] leading-relaxed rtl">
+                    <p><?php echo esc_html($private_details); ?></p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- مرحله ۳: جزئیات کامل (پس از امضای NDA) -->
+        <?php if ($user_access_level >= 1 && $has_signed_nda) : ?>
+            <div class="border-t border-[#669bbc] pt-4 mt-6">
+                <h2 class="text-2xl font-bold text-[#c1121f] mb-4">مرحله ۳: جزئیات کامل و فنی (محرمانه)</h2>
+                <div class="text-[#003049] leading-relaxed rtl">
+                    <p><?php echo esc_html($nda_details); ?></p>
+                </div>
+            </div>
+        <?php elseif ($user_access_level >= 1 && !$has_signed_nda) : ?>
+            <!-- نمایش دکمه هدایت به صفحه NDA -->
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg mt-6" role="alert">
+                <p class="font-bold">برای دسترسی به جزئیات کامل ایده، نیاز به امضای قرارداد NDA است.</p>
+                <a href="<?php echo home_url('/nda?idea_id=' . get_the_ID()); ?>" class="inline-block mt-2 font-semibold text-yellow-800 hover:text-yellow-900 underline">
+                    مشاهده و امضای قرارداد NDA
+                </a>
+            </div>
+        <?php elseif ($user_access_level === 0) : ?>
+            <!-- نمایش پیام برای کاربران عمومی -->
+            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg mt-6" role="alert">
+                <p class="font-bold">برای مشاهده جزئیات بیشتر، وارد شوید.</p>
+                <a href="<?php echo home_url('/login'); ?>" class="inline-block mt-2 font-semibold text-blue-800 hover:text-blue-900 underline">
+                    ورود به حساب کاربری
+                </a>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php
+endwhile;
+else:
+    // اگر ایده‌ای یافت نشد
+    echo '<div class="container mx-auto py-8"><div class="bg-white p-6 rounded-lg shadow-md text-center"><p class="text-lg font-bold text-[#003049]">متاسفانه ایده مورد نظر یافت نشد.</p></div></div>';
+endif;
+
+get_footer();
+?>
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\single-idea.php ---
+
+--- START OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\style.css ---
+
+/*
+Theme Name: IdeaNet
+Theme URI: https://ideanet.hadin
+Author: Hadin Group
+Author URI: https://hadin.group
+Description: A modern, creative and professional theme for IdeaNet project.
+Version: 1.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: custom, modern, rtl, responsive, idea, startup, wordpress
+Text Domain: ideanet
+*/
+
+/* * تنظیمات پایه برای راست‌چین (RTL) بودن سایت
+* این استایل‌ها به صورت پیش‌فرض کل سایت رو راست‌چین می‌کنن
+*/
+body {
+    direction: rtl; /* جهت سایت رو راست‌چین می‌کنه */
+    text-align: right; /* متن‌ها رو به راست می‌بره */
+    font-family: 'IRANSans', sans-serif; /* فونت اصلی سایت */
+    color: #003049; /* رنگ اصلی متن */
+}
+
+/* * فونت‌های لازم رو برای پروژه فراخوانی می‌کنیم.
+* مطمئن بشید که فونت IRANSans در پوشه assets/fonts قرار داره.
+*/
+@font-face {
+    font-family: 'IRANSans';
+    src: url('assets/fonts/IRANSansWeb(FaNum).eot');
+    src: url('assets/fonts/IRANSansWeb(FaNum).eot?#iefix') format('embedded-opentype'),
+         url('assets/fonts/IRANSansWeb(FaNum).woff2') format('woff2'),
+         url('assets/fonts/IRANSansWeb(FaNum).woff') format('woff'),
+         url('assets/fonts/IRANSansWeb(FaNum).ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* برای بهبود تجربه بارگذاری فونت */
+}
+
+/* * برای نمایش درست آیکون‌ها و SVGها
+*/
+.social-icon {
+    width: 24px; /* اندازه آیکون‌ها */
+    height: 24px;
+}
+
+
+--- END OF FILE: C:\wamp64\www\wordpress\wp-content\themes\hadin-idea-net\style.css ---
+

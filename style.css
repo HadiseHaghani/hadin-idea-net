@@ -1,0 +1,44 @@
+/*
+Theme Name: IdeaNet
+Theme URI: https://ideanet.hadin
+Author: Hadin Group
+Author URI: https://hadin.group
+Description: A modern, creative and professional theme for IdeaNet project.
+Version: 1.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: custom, modern, rtl, responsive, idea, startup, wordpress
+Text Domain: ideanet
+*/
+
+/* * تنظیمات پایه برای راست‌چین (RTL) بودن سایت
+* این استایل‌ها به صورت پیش‌فرض کل سایت رو راست‌چین می‌کنن
+*/
+body {
+    direction: rtl; /* جهت سایت رو راست‌چین می‌کنه */
+    text-align: right; /* متن‌ها رو به راست می‌بره */
+    font-family: 'IRANSans', sans-serif; /* فونت اصلی سایت */
+    color: #003049; /* رنگ اصلی متن */
+}
+
+/* * فونت‌های لازم رو برای پروژه فراخوانی می‌کنیم.
+* مطمئن بشید که فونت IRANSans در پوشه assets/fonts قرار داره.
+*/
+@font-face {
+    font-family: 'IRANSans';
+    src: url('assets/fonts/IRANSansWeb(FaNum).eot');
+    src: url('assets/fonts/IRANSansWeb(FaNum).eot?#iefix') format('embedded-opentype'),
+         url('assets/fonts/IRANSansWeb(FaNum).woff2') format('woff2'),
+         url('assets/fonts/IRANSansWeb(FaNum).woff') format('woff'),
+         url('assets/fonts/IRANSansWeb(FaNum).ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* برای بهبود تجربه بارگذاری فونت */
+}
+
+/* * برای نمایش درست آیکون‌ها و SVGها
+*/
+.social-icon {
+    width: 24px; /* اندازه آیکون‌ها */
+    height: 24px;
+}
